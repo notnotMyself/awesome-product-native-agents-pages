@@ -1,0 +1,15 @@
+stages:
+  - deploy
+
+pages:
+  stage: deploy
+  script:
+    - mkdir -p public
+    - cp pages/index.html public/
+    - mkdir -p public/assets
+    - cp pages/assets/*.png public/assets/
+  artifacts:
+    paths:
+      - public
+  rules:
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH || $DEPLOY_PAGES == "true"'

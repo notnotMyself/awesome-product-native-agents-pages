@@ -1,0 +1,642 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="面向业务负责人与 AI 使用者的 GitLab × AI 使用指引：在 L3-AI-Native / Design System 创建并初始化业务仓库，准备 Shared 与业务目录，完成提交、推送和合入 main。">
+  <title>GitLab × AI 使用指引</title>
+  <style>
+    :root {
+      --ink:#111113;
+      --muted:#737378;
+      --line:#e5e5e7;
+      --soft:#f7f7f8;
+      --blue:#0a84ff;
+      --orange:#fc6d26;
+      --green:#2b8a63;
+      --black:#0d0d0e;
+    }
+    * { box-sizing:border-box; }
+    html { scroll-behavior:smooth; }
+    body { margin:0; color:var(--ink); background:#fff; font:14px/1.7 -apple-system,BlinkMacSystemFont,"SF Pro Text","PingFang SC","Noto Sans SC",sans-serif; }
+    button, a { font:inherit; }
+    a { color:inherit; }
+    code, pre { font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace; }
+    .shell { width:min(1160px,calc(100% - 48px)); margin-inline:auto; }
+    .kicker { color:#888; letter-spacing:1.4px; text-transform:uppercase; font:750 9px/1.2 ui-monospace,SFMono-Regular,Menlo,monospace; }
+
+    .site-header { position:sticky; top:0; z-index:50; border-bottom:1px solid var(--line); background:rgba(255,255,255,.94); backdrop-filter:blur(14px); }
+    .header-inner { display:flex; align-items:center; gap:34px; min-height:72px; }
+    .brand { display:flex; align-items:center; gap:11px; margin-right:auto; text-decoration:none; font-weight:760; }
+    .brand-mark { display:grid; place-items:center; width:34px; height:34px; border-radius:10px; color:#fff; background:linear-gradient(145deg,#fc6d26,#e24329); font-size:10px; font-weight:850; }
+    .nav { display:flex; gap:28px; }
+    .nav a { color:#55555a; text-decoration:none; font-size:11px; font-weight:650; }
+    .nav a:hover { color:#111; }
+
+    .hero { padding:82px 0 68px; overflow:hidden; background:radial-gradient(circle at 78% 35%,rgba(178,214,255,.31),transparent 28%),radial-gradient(circle at 92% 78%,rgba(255,210,184,.18),transparent 22%),#fff; }
+    .hero-layout { display:grid; grid-template-columns:minmax(0,.82fr) minmax(590px,1.18fr); align-items:center; gap:52px; }
+    .hero-copy { position:relative; z-index:2; max-width:520px; }
+    .hero h1 { margin:24px 0 22px; font-size:clamp(58px,5.2vw,72px); font-weight:720; line-height:.96; letter-spacing:-4.8px; }
+    .hero h1 span { display:block; }
+    .hero h1 em { color:transparent; background:linear-gradient(100deg,#0a84ff 0%,#5b73ff 52%,#b45cff 100%); background-clip:text; font-style:normal; }
+    .hero-copy > p { max-width:500px; margin:0; color:#666; font-size:15px; }
+    .hero-actions { display:flex; align-items:center; gap:10px; margin-top:30px; }
+    .hero-actions a { display:inline-flex; align-items:center; justify-content:center; min-height:46px; padding:0 19px; border:1px solid #d7d7d9; border-radius:999px; background:rgba(255,255,255,.8); text-decoration:none; font-size:11px; font-weight:700; transition:transform .2s; }
+    .hero-actions a:first-child { color:#fff; border-color:#111; background:#111; }
+    .hero-actions a:hover { transform:translateY(-3px); }
+    .hero-stage { position:relative; min-height:440px; }
+    .hero-frame { position:absolute; inset:10px 0 24px 20px; overflow:hidden; border:1px solid #dcdcdf; border-radius:20px; background:#fff; box-shadow:0 34px 90px rgba(40,48,67,.14); }
+    .hero-frame img { display:block; width:100%; height:100%; object-fit:contain; object-position:center; background:#f7f7f8; }
+    .hero-real-shot { height:100%; margin:0; }
+    .hero-real-shot figcaption { position:absolute; left:18px; bottom:16px; padding:7px 10px; border:1px solid rgba(255,255,255,.75); border-radius:8px; color:#4b4b50; background:rgba(255,255,255,.86); font-size:9px; font-weight:650; }
+    .hero-frame::after { position:absolute; inset:0; content:""; box-shadow:inset 0 0 0 1px rgba(255,255,255,.4); pointer-events:none; }
+    .hero-status { position:absolute; right:-6px; bottom:0; display:grid; grid-template-columns:38px 1fr 24px; align-items:center; gap:10px; width:390px; min-height:66px; padding:11px 15px; border:1px solid #2c2c30; border-radius:14px; color:#fff; background:#101012; box-shadow:0 22px 55px rgba(0,0,0,.18); }
+    .hero-status > span { display:grid; place-items:center; width:32px; height:32px; border-radius:9px; background:#2f75dc; font-size:9px; font-weight:850; }
+    .hero-status p { margin:0; color:#d5d5d8; font-size:10px; line-height:1.5; }
+    .hero-status b { color:#65d59f; }
+
+    .value-strip { border-top:1px solid var(--line); border-bottom:1px solid var(--line); }
+    .value-grid { display:grid; grid-template-columns:repeat(3,1fr); }
+    .value-grid div { padding:20px 24px; border-right:1px solid var(--line); }
+    .value-grid div:last-child { border-right:0; }
+    .value-grid span { display:block; color:#8a8a8f; font-size:9px; font-weight:700; }
+    .value-grid b { display:block; margin-top:4px; font-size:13px; }
+
+    .section { padding:92px 0; }
+    .section.soft { background:var(--soft); }
+    .section-heading { display:grid; grid-template-columns:1fr 360px; align-items:end; gap:60px; margin-bottom:42px; }
+    .section-heading h2 { margin:15px 0 0; font-size:clamp(38px,4vw,54px); line-height:1.05; letter-spacing:-3px; }
+    .section-heading > p { margin:0; color:var(--muted); }
+    .reason-grid { display:grid; grid-template-columns:repeat(3,1fr); border-top:1px solid var(--line); border-bottom:1px solid var(--line); }
+    .reason { min-height:214px; padding:30px 28px; border-right:1px solid var(--line); }
+    .reason:last-child { border-right:0; }
+    .reason > span { color:var(--blue); font:750 9px/1 ui-monospace,monospace; }
+    .reason h3 { margin:21px 0 10px; font-size:23px; line-height:1.2; letter-spacing:-1px; }
+    .reason p { margin:0; color:#6b6b70; font-size:12px; }
+
+    .flow { overflow:hidden; border:1px solid var(--line); border-radius:16px; }
+    .flow-row { display:grid; grid-template-columns:68px minmax(0,1fr); gap:30px; min-height:270px; padding:31px 28px; border-bottom:1px solid var(--line); background:#fff; }
+    .flow-row:last-child { border-bottom:0; }
+    .flow-number { padding-top:4px; color:#b4b4b4; font:700 21px/1 ui-monospace,monospace; }
+    .flow-copy > small { color:var(--blue); font-size:9px; font-weight:750; }
+    .flow-copy h3 { margin:10px 0 8px; font-size:24px; line-height:1.2; letter-spacing:-1px; }
+    .flow-copy > p { margin:0; color:var(--muted); font-size:12px; }
+    .flow-meta { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:20px; }
+    .flow-meta > div { padding:12px 13px; border:1px solid #e7e7e9; border-radius:10px; background:#fafafa; }
+    .flow-meta span { display:block; color:#929297; font-size:9px; font-weight:700; }
+    .flow-meta p { margin:7px 0 0; color:#3d3d41; font-size:10px; line-height:1.55; }
+    .setup-steps { display:grid; gap:9px; margin:18px 0 0; padding:0; list-style:none; }
+    .setup-steps li { display:grid; grid-template-columns:24px 1fr; gap:9px; align-items:start; color:#4c4c51; font-size:11px; line-height:1.55; }
+    .setup-steps li::before { display:grid; place-items:center; width:22px; height:22px; border-radius:50%; color:#fff; background:#111; content:counter(setup-step); counter-increment:setup-step; font:750 10px/1 ui-monospace,monospace; }
+    .setup-steps { counter-reset:setup-step; }
+    .setup-steps b { color:#111; }
+    .manual-link { display:inline-flex; align-items:center; gap:8px; margin-top:19px; color:#fff; border-radius:999px; background:#111; padding:9px 14px; text-decoration:none; font-size:10px; font-weight:750; }
+
+    .flow-visual { grid-column:2; min-width:0; margin-top:2px; }
+    .gallery { min-width:0; }
+    .gallery-tabs { display:flex; gap:6px; margin-bottom:10px; }
+    .gallery-tab { flex:1; min-height:34px; padding:5px 8px; border:1px solid #dddde0; border-radius:8px; color:#707075; background:#fff; cursor:pointer; font-size:9px; font-weight:700; }
+    .gallery-tab.is-active { color:#fff; border-color:#111; background:#111; }
+    .gallery-stage { position:relative; overflow:hidden; border:1px solid #dcdcdf; border-radius:12px; background:#fff; box-shadow:0 12px 32px rgba(20,21,24,.06); }
+    .gallery-shot { display:none; margin:0; }
+    .gallery-shot.is-active { display:block; }
+    .gallery-shot img { display:block; width:100%; height:auto; object-fit:contain; object-position:top left; background:#f6f6f8; cursor:zoom-in; }
+    .gallery-shot figcaption { padding:10px 12px; border-top:1px solid var(--line); color:#68686d; font-size:10px; }
+    .single-shot { margin:0; overflow:hidden; border:1px solid #dcdcdf; border-radius:12px; background:#fff; box-shadow:0 12px 32px rgba(20,21,24,.06); }
+    .single-shot img { display:block; width:100%; height:auto; object-fit:contain; object-position:top left; cursor:zoom-in; }
+    .single-shot figcaption { padding:10px 12px; border-top:1px solid var(--line); color:#68686d; font-size:10px; }
+
+    .repo-mock { position:relative; min-height:310px; overflow:hidden; border:1px solid #dcdcdf; border-radius:13px; background:#fff; box-shadow:0 12px 32px rgba(20,21,24,.06); }
+    .repo-mock-bar { display:flex; align-items:center; gap:7px; min-height:38px; padding:0 13px; border-bottom:1px solid var(--line); background:#f5f5f7; }
+    .repo-mock-bar i { width:6px; height:6px; border-radius:50%; background:#c8c8cc; }
+    .repo-mock-search { width:36%; height:20px; margin-left:auto; border:1px solid #dddde0; border-radius:6px; background:#fff; }
+    .repo-mock-body { position:relative; padding:16px 18px 20px; }
+    .repo-breadcrumb { color:#77777c; font-size:8px; font-weight:700; }
+    .repo-heading { display:flex; align-items:center; gap:10px; margin:13px 0; }
+    .repo-heading > span { display:grid; place-items:center; width:32px; height:32px; border-radius:8px; color:#85452e; background:#ffe7dd; font-weight:800; }
+    .repo-heading b { display:block; font-size:13px; }
+    .repo-heading small { color:#88888d; font-size:8px; }
+    .repo-files { width:62%; overflow:hidden; border:1px solid #e2e2e5; border-radius:8px; }
+    .repo-file { display:grid; grid-template-columns:1fr 92px; gap:10px; padding:9px 11px; border-bottom:1px solid #ededee; color:#55555a; font-size:8px; }
+    .repo-file:last-child { border-bottom:0; }
+    .repo-file b { color:#222226; }
+    .clone-popover { position:absolute; right:17px; top:78px; width:57%; padding:13px; border:1px solid #d6d6d9; border-radius:10px; background:#fff; box-shadow:0 18px 40px rgba(20,21,24,.15); }
+    .clone-popover strong { display:block; margin-bottom:8px; font-size:9px; }
+    .clone-address { display:flex; align-items:center; justify-content:space-between; gap:8px; min-height:34px; padding:7px 9px; overflow-wrap:anywhere; border:2px solid var(--orange); border-radius:6px; color:#333338; background:#fff; font:650 8px/1.35 ui-monospace,monospace; }
+    .clone-address span { flex:none; color:var(--orange); font-size:10px; }
+    .repo-tip { margin-top:8px; color:#77777c; font-size:8px; line-height:1.5; }
+    .visual-caption { margin:0; padding:10px 12px; border:1px solid #dcdcdf; border-top:0; border-radius:0 0 12px 12px; color:#68686d; background:#fff; font-size:10px; }
+    .hero-frame .repo-mock { height:100%; min-height:0; border:0; border-radius:0; box-shadow:none; }
+    .hero-frame .repo-mock-body { padding:22px 24px; }
+    .hero-frame .repo-heading b { font-size:16px; }
+    .hero-frame .clone-popover { top:96px; right:22px; }
+
+    .merge-rules { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+    .merge-rule { min-height:112px; padding:14px; border:1px solid #dedee1; border-radius:11px; background:#fff; }
+    .merge-rule span { display:grid; place-items:center; width:24px; height:24px; border-radius:7px; color:#fff; background:#111; font:750 9px/1 ui-monospace,monospace; }
+    .merge-rule h4 { margin:11px 0 5px; font-size:12px; }
+    .merge-rule p { margin:0; color:#747479; font-size:9px; line-height:1.55; }
+
+    .prompt-card { display:flex; flex-direction:column; min-height:390px; overflow:hidden; border-radius:16px; color:#fff; background:var(--black); box-shadow:0 28px 70px rgba(0,0,0,.12); }
+    .prompt-head { display:flex; align-items:center; justify-content:space-between; gap:16px; min-height:52px; padding:0 16px; border-bottom:1px solid #2d2d30; color:#777; font:750 9px/1 ui-monospace,monospace; }
+    .copy-button { min-height:32px; padding:0 10px; border:1px solid #48484d; border-radius:7px; color:#d8d8dc; background:#171719; cursor:pointer; font-size:9px; }
+    .copy-button:hover { border-color:#777; }
+    .prompt-card pre { flex:1; overflow:auto; margin:0; padding:18px; white-space:pre-wrap; color:#d6d6da; font:500 10px/1.78 ui-monospace,SFMono-Regular,Menlo,monospace; }
+    .prompt-note { padding:12px 16px; border-top:1px solid #2d2d30; color:#777; font-size:9px; }
+    .prompt-stack { display:grid; gap:14px; }
+    .prompt-card.compact { min-height:0; }
+    .prompt-card.compact pre { flex:none; }
+
+    .showcase { background:#fff; }
+    .showcase-heading { max-width:760px; margin-bottom:42px; }
+    .showcase-heading h2 { margin:15px 0 15px; font-size:clamp(38px,4vw,54px); line-height:1.05; letter-spacing:-3px; }
+    .showcase-heading p { max-width:680px; margin:0; color:var(--muted); }
+    .showcase-grid { display:grid; grid-template-columns:minmax(0,1.48fr) minmax(300px,.72fr); gap:18px; align-items:stretch; }
+    .case-card { overflow:hidden; border:1px solid var(--line); border-radius:16px; background:#fff; }
+    .case-main { grid-row:span 2; }
+    .case-main figure, .case-compact figure { margin:0; background:#f4f4f5; }
+    .case-main img, .case-compact img { display:block; width:100%; height:auto; cursor:zoom-in; }
+    .case-main figure { border-bottom:1px solid var(--line); }
+    .case-compact figure { border-bottom:1px solid var(--line); }
+    .case-caption { padding:9px 14px; border-top:1px solid var(--line); color:#77777c; background:#fafafa; font-size:9px; }
+    .case-body { padding:24px; }
+    .case-kind { color:var(--orange); font:750 9px/1.2 ui-monospace,SFMono-Regular,Menlo,monospace; }
+    .case-card h3 { margin:11px 0 9px; font-size:24px; line-height:1.18; letter-spacing:-1.2px; }
+    .case-card p { margin:0; color:var(--muted); font-size:11px; }
+    .case-path { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:20px; }
+    .case-path div { min-height:92px; padding:13px; border:1px solid #e6e6e8; border-radius:10px; background:#fafafa; }
+    .case-path b { display:block; margin-bottom:6px; font-size:10px; }
+    .case-path span { display:block; color:#67676c; font-size:9px; line-height:1.55; }
+    .case-prompt { margin-top:18px; overflow:hidden; border-radius:12px; color:#fff; background:#111113; }
+    .case-prompt .prompt-head { min-height:46px; }
+    .case-prompt pre { max-height:255px; overflow:auto; margin:0; padding:15px 16px; white-space:pre-wrap; color:#d6d6da; font:500 9px/1.7 ui-monospace,SFMono-Regular,Menlo,monospace; }
+    .case-compact { display:flex; flex-direction:column; }
+    .case-compact .case-body { display:flex; flex:1; flex-direction:column; padding:20px; }
+    .case-compact h3 { font-size:19px; }
+    .case-compact .case-prompt { margin-top:auto; }
+    .case-compact .case-prompt pre { max-height:190px; }
+    .case-handover { color:#fff; border-color:#29292d; background:#111113; }
+    .case-handover .case-kind { color:#77b7ff; }
+    .case-handover h3 { color:#fff; }
+    .case-handover p { color:#b7b7bc; }
+    .handover-list { display:grid; gap:0; margin:20px 0 0; padding:0; list-style:none; border-top:1px solid #303034; }
+    .handover-list li { display:grid; grid-template-columns:72px 1fr; gap:12px; padding:11px 0; border-bottom:1px solid #303034; color:#cfcfd3; font-size:9px; }
+    .handover-list b { color:#77b7ff; }
+    .case-handover .case-prompt { border:1px solid #303034; background:#19191c; }
+
+    .completion { padding:66px 0; color:#fff; background:#111113; }
+    .completion-grid { display:grid; grid-template-columns:.72fr 1.28fr; gap:70px; align-items:start; }
+    .completion h2 { margin:14px 0 0; font-size:42px; line-height:1.08; letter-spacing:-2.5px; }
+    .completion-list { display:grid; gap:14px; }
+    .completion-list div { display:grid; grid-template-columns:128px 1fr; gap:22px; padding-bottom:14px; border-bottom:1px solid #303034; }
+    .completion-list div:last-child { border-bottom:0; }
+    .completion-list b { color:#77b7ff; }
+    .completion-list span { color:#c9c9cd; }
+    footer { padding:28px 0 42px; color:#88888d; font-size:10px; text-align:center; }
+
+    .lightbox { position:fixed; inset:0; z-index:200; display:none; place-items:center; padding:30px; background:rgba(5,5,7,.88); }
+    .lightbox.is-open { display:grid; }
+    .lightbox img { max-width:96vw; max-height:90vh; object-fit:contain; box-shadow:0 20px 70px rgba(0,0,0,.45); }
+    .lightbox button { position:absolute; top:20px; right:24px; width:42px; height:42px; border:1px solid #666; border-radius:50%; color:#fff; background:#171719; cursor:pointer; font-size:20px; }
+
+    @media (max-width:980px) {
+      .hero-layout { grid-template-columns:1fr; }
+      .hero-copy { max-width:700px; }
+      .hero-stage { width:min(720px,100%); }
+      .section-heading { grid-template-columns:1fr; gap:16px; }
+      .flow-row { grid-template-columns:55px 1fr; }
+      .showcase-grid { grid-template-columns:1fr; }
+      .case-main { grid-row:auto; }
+      .completion-grid { grid-template-columns:1fr; gap:36px; }
+    }
+    @media (max-width:680px) {
+      .shell { width:min(100% - 32px,1160px); }
+      .header-inner { min-height:64px; }
+      .nav { display:none; }
+      .hero { padding:58px 0 46px; }
+      .hero h1 { font-size:48px; letter-spacing:-3.6px; }
+      .hero-stage { min-height:345px; }
+      .hero-frame { inset:5px 0 28px; }
+      .hero-status { right:0; width:calc(100% - 18px); }
+      .value-grid, .reason-grid { grid-template-columns:1fr; }
+      .value-grid div, .reason { border-right:0; border-bottom:1px solid var(--line); }
+      .reason:last-child { border-bottom:0; }
+      .section { padding:64px 0; }
+      .section-heading h2 { font-size:39px; letter-spacing:-2.3px; }
+      .flow-row { grid-template-columns:1fr; gap:16px; padding:25px 20px; }
+      .flow-visual { grid-column:auto; margin-top:0; }
+      .flow-meta { grid-template-columns:1fr; }
+      .case-path { grid-template-columns:1fr; }
+      .gallery-shot img, .single-shot img { height:auto; max-height:420px; object-fit:contain; }
+      .merge-rules { grid-template-columns:1fr; }
+      .completion-list div { grid-template-columns:1fr; gap:3px; }
+    }
+    @media print {
+      .site-header, .copy-button, .lightbox { display:none; }
+      .hero, .section { padding:36px 0; }
+      .flow-row, .reason, .prompt-card { break-inside:avoid; }
+    }
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <div class="shell header-inner">
+      <a class="brand" href="#top"><span class="brand-mark">GL</span><span>GitLab × AI 使用指引</span></a>
+      <nav class="nav" aria-label="页面导航"><a href="#why">为什么使用</a><a href="#workflow">首次上手</a><a href="#showcase">案例</a><a href="#complete">完成标准</a></nav>
+    </div>
+  </header>
+
+  <main id="top">
+    <section class="hero">
+      <div class="shell hero-layout">
+        <div class="hero-copy">
+          <div class="kicker">GitLab × AI workflow</div>
+          <h1><span>把项目交给 AI，</span><span>不是把<em>文件</em>发给 AI。</span></h1>
+          <p>GitLab 让 AI 读取同一份项目资料、保留每次修改记录，并把未经确认的改动隔离在独立分支中，经过检查后再合入正式版本。</p>
+          <div class="hero-actions"><a href="#workflow">开始配置 ↓</a><a href="#why">为什么使用 →</a></div>
+        </div>
+        <div class="hero-stage">
+          <div class="hero-frame" aria-label="小布笔记 Storybook 真实页面截图">
+            <figure class="hero-real-shot">
+              <img src="assets/xiaobubiji-storybook-home.png" alt="小布笔记 Storybook 中首页列表 Story 的真实运行截图" data-zoom>
+              <figcaption>真实 Storybook：小布笔记 / 05 Pages / 笔记 / 首页列表</figcaption>
+            </figure>
+          </div>
+          <div class="hero-status"><span>AI</span><p>已获得项目地址，准备 clone 并读取项目规则。</p><b>✓</b></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="value-strip"><div class="shell value-grid"><div><span>所有人看到</span><b>同一份项目与最新版本</b></div><div><span>每次修改都有</span><b>记录、对比与回退路径</b></div><div><span>最终提交前</span><b>保留人的检查与确认</b></div></div></section>
+
+    <section class="section" id="why">
+      <div class="shell">
+        <div class="section-heading"><div><div class="kicker">Why GitLab</div><h2>为什么让 AI<br>通过 GitLab 工作</h2></div><p>GitLab 不只是放文件的地方。它给 AI 一套熟悉的入口，把资料、协作、自动执行和每次修改的来龙去脉放在一起，让 AI 更容易理解，也让人更容易检查。</p></div>
+        <div class="reason-grid">
+          <article class="reason"><span>01 · AI 熟悉的入口</span><h3>不用为每个项目<br>重新教 AI</h3><p>GitLab 自带命令行和接口，AI 已经理解这套通用用法：找到项目、读取资料、提交修改，都有现成的路径。</p></article>
+          <article class="reason"><span>02 · 从资料到执行</span><h3>把协作过程<br>自然串起来</h3><p>知识库、页面、自动检查、机器人和执行环境可以接在一起，让 Agent 从“读懂”一路走到“完成并交付”。</p></article>
+          <article class="reason"><span>03 · 唯一真理源</span><h3>AI 最近的<br>可信入口</h3><p>项目仓库保存当前版本、修改记录和讨论依据。大家看同一份内容，AI 也从这里开始，不再反复寻找“到底哪份是真的”。</p></article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section soft" id="workflow">
+      <div class="shell">
+        <div class="section-heading"><div><div class="kicker">Simple SOP</div><h2>从新建项目，<br>到安全合入</h2></div><p>第一次完成登录、令牌和业务项目配置。之后每个任务都遵循同一条路径：从正式版本开新分支，修改并检查，通过合并请求确认后再合入。</p></div>
+        <div class="flow">
+          <article class="flow-row">
+            <div class="flow-number">01</div>
+            <div class="flow-copy">
+              <small>首次配置 · 先登录，再创建令牌</small>
+              <h3>登录 GitLab，创建个人访问令牌</h3>
+              <p>按下面 1-4 步操作。下方图示也要跟着点击切换 Tab 查看，不同 Tab 对应不同页面位置。</p>
+              <ol class="setup-steps">
+                <li><span><b>先登录。</b>打开 GitLab 群组或项目页面；如果右上角显示 <code>Sign in</code>，先完成公司账号认证。</span></li>
+                <li><span><b>找到入口。</b>登录后打开个人设置，进入“访问”，再点击“个人访问令牌”。</span></li>
+                <li><span><b>选择令牌类型。</b>点击“生成令牌”，选择“旧版令牌”，填写名称和到期日。</span></li>
+                <li><span><b>设置并复制。</b>按团队要求只勾选完成工作所需的权限，生成后立即复制令牌；离开页面后通常无法再次查看。</span></li>
+              </ol>
+              <a class="manual-link" href="https://o-gitlab.myoas.com/-/user_settings/profile" target="_blank" rel="noreferrer">登录后打开个人设置 ↗</a>
+              <div class="flow-meta"><div><span>需要准备</span><p>GitLab 用户名、个人访问令牌。</p></div><div><span>完成标志</span><p>令牌已复制；离开页面后通常无法再次查看。</p></div></div>
+            </div>
+            <div class="flow-visual gallery" data-gallery>
+              <div class="gallery-tabs"><button class="gallery-tab is-active" type="button" data-gallery-index="0">步骤 1 · 先登录</button><button class="gallery-tab" type="button" data-gallery-index="1">步骤 2 · 找到入口</button><button class="gallery-tab" type="button" data-gallery-index="2">步骤 3 · 选择旧版令牌</button><button class="gallery-tab" type="button" data-gallery-index="3">步骤 4 · 设置权限</button></div>
+              <div class="gallery-stage">
+                <figure class="gallery-shot is-active"><img src="assets/gitlab-login-sign-in.png" alt="GitLab 群组页面右上角的 Sign in 登录入口" data-zoom><figcaption>步骤 1：打开群组或项目页面，点击右上角 Sign in，先完成公司账号登录</figcaption></figure>
+                <figure class="gallery-shot"><img src="assets/gitlab-personal-access-token-menu.png" alt="GitLab 个人访问令牌入口" data-zoom><figcaption>步骤 2：用户设置 → 访问 → 个人访问令牌</figcaption></figure>
+                <figure class="gallery-shot"><img src="assets/gitlab-legacy-token-option.png" alt="GitLab 旧版令牌选项" data-zoom><figcaption>步骤 3：生成令牌 → 旧版令牌</figcaption></figure>
+                <figure class="gallery-shot"><img src="assets/gitlab-legacy-token-permissions.png" alt="GitLab 旧版令牌权限设置" data-zoom><figcaption>步骤 4：设置令牌权限并生成、复制令牌</figcaption></figure>
+              </div>
+            </div>
+          </article>
+
+          <article class="flow-row">
+            <div class="flow-number">02</div>
+            <div class="flow-copy">
+              <small>业务负责人操作 · 直接交给 AI</small>
+              <h3>通过 AI 在 Design System Group 建立业务仓库</h3>
+              <p>业务仓库统一创建在 <code>L3-AI-Native / Design System</code>。负责人准备业务名称、自己的 GitLab 账号和已沉淀项目目录，然后依次复制下方两段提示词给 AI。</p>
+              <ol class="setup-steps">
+                <li><span><b>填写业务名称。</b>示例：小布笔记对应 <code>xiaobubiji-design-system</code>。</span></li>
+                <li><span><b>让 AI 创建空仓库。</b>AI 必须先确认命名空间是 <code>L3-AI-Native / Design System</code>，不能创建到个人空间。</span></li>
+                <li><span><b>让 AI 上传项目。</b>把 miniColorDesign 插件已经沉淀好的完整项目推送到新仓库。</span></li>
+                <li><span><b>负责人验收。</b>打开仓库确认 main、README、Shared、业务目录和启动说明都已存在。</span></li>
+              </ol>
+              <div class="flow-meta"><div><span>示例输入</span><p>业务名：小布笔记；仓库名：<code>xiaobubiji-design-system</code>。</p></div><div><span>最终结果</span><p>AI 返回业务仓库 URL、main 提交和本地启动方式。</p></div></div>
+            </div>
+            <div class="flow-visual prompt-stack">
+              <div class="prompt-card compact">
+                <div class="prompt-head"><span>提示词 1 · 创建业务仓库</span><button class="copy-button" type="button" data-copy="prompt-create-repo">复制提示词</button></div>
+                <pre id="prompt-create-repo">请帮我在公司 GitLab 创建一个业务 Design System 仓库。
+
+GitLab 地址：https://o-gitlab.myoas.com
+固定 Group：L3-AI-Native / Design System
+业务名称：小布笔记
+仓库名称：xiaobubiji-design-system
+仓库负责人：&lt;负责人姓名或 GitLab 用户名&gt;
+GitLab 用户名：&lt;用户名&gt;
+Personal Access Token：&lt;个人访问令牌&gt;
+
+请按顺序完成：
+1. 先确认目标命名空间确实是 L3-AI-Native / Design System。如果路径或权限不明确，停止并告诉我，不要改到个人空间。
+2. 在这个 Group 下创建空白仓库 xiaobubiji-design-system，沿用 Group 的可见范围和默认权限。
+3. 不要初始化示例代码，也不要把令牌写进 URL、日志、仓库或聊天摘要。
+4. 创建后返回仓库网页地址、Clone with HTTPS 地址、默认分支状态和当前负责人。
+
+现在只创建空仓库，不要上传项目。</pre>
+                <div class="prompt-note">把示例中的业务名称、仓库名称和负责人替换成真实信息。</div>
+              </div>
+              <div class="prompt-card compact">
+                <div class="prompt-head"><span>提示词 2 · 上传已沉淀项目</span><button class="copy-button" type="button" data-copy="prompt-upload-project">复制提示词</button></div>
+                <pre id="prompt-upload-project">请把 miniColorDesign 插件已经沉淀好的完整项目上传到刚创建的业务仓库。
+
+已沉淀项目目录：&lt;本地完整项目目录&gt;
+目标仓库 HTTPS：&lt;刚创建仓库的 Clone with HTTPS 地址&gt;
+目标正式分支：main
+
+请按顺序完成：
+1. 读取项目内的 README、AGENTS.md、design-system.manifest.json 和 package.json，确认这是完整的 miniColorDesign 项目，不是只包含源码的临时目录。
+2. 检查 git status 和现有 remote。保留原有 Git 历史；如果当前 origin 指向模板仓库，把它改名为 template，再把目标业务仓库设为 origin。
+3. 检查是否误包含令牌、密码、个人信息、构建产物或不应公开的资料。发现风险先停止并告诉我。
+4. 确认 Shared、业务 stories、业务 knowledge、assets 和启动脚本都在项目中。
+5. 将当前确认版本提交到 main 并推送到目标仓库。不要 force push。
+6. 推送后运行仓库要求的检查，并返回仓库地址、commit ID、检查结果和本地启动命令。
+
+如果目标仓库不是 L3-AI-Native / Design System 下的仓库，停止操作。</pre>
+                <div class="prompt-note">示例：把小布笔记完整沉淀项目上传到 xiaobubiji-design-system。</div>
+              </div>
+            </div>
+          </article>
+
+          <article class="flow-row">
+            <div class="flow-number">03</div>
+            <div class="flow-copy">
+              <small>每个项目做一次</small>
+              <h3>复制项目的 HTTPS 地址</h3>
+              <p>打开目标项目首页，点击“代码”，在“使用 HTTPS 克隆”区域复制项目地址。不要把用户名和令牌直接拼进 URL。</p>
+              <div class="flow-meta"><div><span>复制什么</span><p><code>https://o-gitlab.myoas.com/.../design-system/&lt;业务仓库&gt;.git</code></p></div><div><span>完成标志</span><p>已经拿到 Design System Group 下业务仓库的 HTTPS 地址。</p></div></div>
+            </div>
+            <div class="flow-visual">
+              <div class="repo-mock" aria-label="从 L3-AI-Native Design System Group 复制业务仓库 HTTPS 地址的示意">
+                <div class="repo-mock-bar"><i></i><i></i><i></i><span class="repo-mock-search"></span></div>
+                <div class="repo-mock-body">
+                  <div class="repo-breadcrumb">L3-AI-Native / Design System</div>
+                  <div class="repo-heading"><span>小</span><div><b>xiaobubiji-design-system</b><small>小布笔记 Design System · main</small></div></div>
+                  <div class="repo-files"><div class="repo-file"><b>README.md</b><span>说明与负责人</span></div><div class="repo-file"><b>pages/</b><span>页面与流程</span></div><div class="repo-file"><b>knowledge/</b><span>业务知识</span></div></div>
+                  <div class="clone-popover"><strong>使用 HTTPS 克隆</strong><div class="clone-address">https://o-gitlab.myoas.com/.../design-system/xiaobubiji-design-system.git <span>▣</span></div><div class="repo-tip">复制仓库地址，不要把用户名或令牌拼进 URL。</div></div>
+                </div>
+              </div>
+              <p class="visual-caption">项目首页 → 代码 → 使用 HTTPS 克隆 → 复制地址</p>
+            </div>
+          </article>
+
+          <article class="flow-row">
+            <div class="flow-number">04</div>
+            <div class="flow-copy">
+              <small>交给 AI · 准备目录并启动服务</small>
+              <h3>拉取 Shared + 业务项目，启动本地服务</h3>
+              <p>把 Shared 公共仓库和业务仓库一起交给 AI。AI 先 clone 或拉取最新内容，再按两个目录各自的 README、<code>package.json</code> 和启动脚本启动服务。</p>
+              <div class="flow-meta"><div><span>本地目录</span><p><code>&lt;工作区&gt;/shared</code> + <code>&lt;工作区&gt;/&lt;业务名称&gt;</code>，两个目录都要保留。</p></div><div><span>完成标志</span><p>两个仓库状态正常，Shared 与业务服务均已启动或明确报告阻塞。</p></div></div>
+            </div>
+            <div class="flow-visual prompt-card">
+              <div class="prompt-head"><span>直接复制给 AI · 准备本地工作区</span><button class="copy-button" type="button" data-copy="prompt-clone">复制提示词</button></div>
+              <pre id="prompt-clone">请帮我准备一个 GitLab 工作区，包含 Shared 与业务项目。
+
+GitLab 用户名：&lt;用户名&gt;
+Personal Access Token：&lt;刚创建的令牌&gt;
+Shared 项目 HTTPS：&lt;Shared 项目 HTTPS 地址&gt;
+业务项目 HTTPS：&lt;业务项目 HTTPS 地址&gt;
+
+请按顺序完成：
+1. 检查 git 和 pnpm 是否可用；如果未安装或用户信息未配置，先告诉我。
+2. 分别 clone 两个项目到以下目录，不要把令牌写入 URL、仓库、配置文件、日志或聊天摘要：
+   - &lt;工作区&gt;/shared
+   - &lt;工作区&gt;/&lt;业务名称&gt;
+3. 如果目录已存在，先查看远端和分支，再拉取最新 main；不要覆盖未提交的修改。
+4. 分别运行 git status、git remote -v、git branch --show-current，并读取两个目录的 README、AGENTS.md 和其他项目规则。
+5. 在两个目录中查看 package.json 和项目文档，使用仓库已有的 dev / storybook / start 脚本启动服务；不要猜命令。
+6. 最后告诉我：两个项目是否拉取成功、目录位置、当前分支、启动命令、服务地址和仍需我确认的事项。
+
+现在不要修改、提交或推送任何内容。令牌只用于当前本地认证。</pre>
+              <div class="prompt-note">Shared 提供公共基础能力，业务目录承载本业务页面、知识和配置；启动失败时先报告原因，不要擅自改配置。</div>
+            </div>
+          </article>
+
+          <article class="flow-row">
+            <div class="flow-number">05</div>
+            <div class="flow-copy">
+              <small>开始新任务 · 让 AI 创建分支</small>
+              <h3>把具体任务交给 AI，从最新 main 开始</h3>
+              <p>业务负责人只要写清任务目标和验收结果。AI 负责先同步 main，再建立本任务的独立分支，避免修改直接进入正式知识资产。</p>
+              <div class="flow-meta"><div><span>案例任务</span><p>为小布笔记补充“会议笔记分享面板”的组件、使用说明和 Story。</p></div><div><span>案例分支</span><p><code>feat/meeting-note-share-panel</code></p></div></div>
+            </div>
+            <div class="flow-visual prompt-card compact">
+              <div class="prompt-head"><span>案例提示词 · 创建任务分支</span><button class="copy-button" type="button" data-copy="prompt-create-branch">复制提示词</button></div>
+              <pre id="prompt-create-branch">请在小布笔记 Design System 仓库中为下面的任务创建独立分支。
+
+任务目标：补充“会议笔记分享面板”的组件、使用说明和 Storybook 示例。
+验收结果：
+- Storybook 中可以查看分享面板的默认态和已选择态
+- 使用说明写清什么时候使用、什么时候不使用
+- 不修改 Shared 公共组件，除非先说明原因并获得确认
+
+请按顺序完成：
+1. 读取仓库的 README、AGENTS.md、design-system.manifest.json 和业务知识入口。
+2. 检查当前工作区是否有未提交修改。如果有，先告诉我，不要覆盖。
+3. 切换到 main，拉取远端最新版本。
+4. 从最新 main 创建分支 feat/meeting-note-share-panel。
+5. 返回当前分支名、main 的最新 commit ID，以及准备修改的目录。
+
+现在只准备分支和任务上下文，不要提交、推送或创建合并请求。</pre>
+              <div class="prompt-note">每次复制时替换任务目标、验收结果和分支名。一个任务只使用一个分支。</div>
+            </div>
+          </article>
+
+          <article class="flow-row">
+            <div class="flow-number">06</div>
+            <div class="flow-copy">
+              <small>修改完成后 · 提交并推送任务分支</small>
+              <h3>确认修改后，提交、推送，再发起合入</h3>
+              <p>修改完成并确认结果后，让 AI 按固定顺序提交和推送当前任务分支。不要直接推送 <code>main</code>，也不要跳过合并请求。</p>
+              <div class="flow-meta"><div><span>提交前</span><p>先看 <code>git diff</code> 和检查结果，只保留本任务的修改。</p></div><div><span>提交后</span><p>返回分支名、commit ID、远端地址和创建合并请求的入口。</p></div></div>
+            </div>
+            <div class="flow-visual prompt-card">
+              <div class="prompt-head"><span>直接复制给 AI · 提交并推送</span><button class="copy-button" type="button" data-copy="prompt-work">复制提示词</button></div>
+              <pre id="prompt-work">请完成下面的任务：
+
+任务目标：&lt;要新增或修改什么&gt;
+我已经确认修改结果，请按下面顺序完成：
+1. 再看一次 git diff 和项目要求的检查结果，确认只包含这个任务。
+2. 在当前任务分支提交修改，提交信息要能说明这次变化。
+3. 推送当前任务分支到远端，不要推送 main。
+4. 返回分支名、commit ID、推送结果和创建合并请求的入口。
+
+不要直接合入 main，也不要删除任务分支。</pre>
+              <div class="prompt-note">业务负责人确认后再执行；提交和推送只针对当前任务分支。</div>
+            </div>
+          </article>
+
+          <article class="flow-row">
+            <div class="flow-number">07</div>
+            <div class="flow-copy">
+              <small>正式知识资产 · 维护 main，再合入</small>
+              <h3>让业务负责人维护正式知识资产并合入 main</h3>
+              <p>业务仓库的正式知识资产只认 <code>main</code>：README、页面、knowledge 和入口都要有人持续维护。任务分支只承载待确认修改，审核通过后才通过合并请求进入 main。</p>
+              <ol class="setup-steps">
+                <li><span><b>创建合并请求。</b>选择当前任务分支 → <code>main</code>，写清这次修改的目的和范围。</span></li>
+                <li><span><b>业务负责人审核。</b>检查内容、页面、知识和启动结果，确认正式资产仍然可用。</span></li>
+                <li><span><b>解决意见再合入。</b>自动检查通过、审核意见关闭后，才能点击 Merge 合入 main。</span></li>
+                <li><span><b>合入后维护。</b>确认 main 已更新，必要时刷新 Pages，并删除已合入的任务分支。</span></li>
+              </ol>
+              <div class="flow-meta"><div><span>正式资产</span><p>只认 main 中已确认的 README、pages/、knowledge/ 和运行入口。</p></div><div><span>完成标志</span><p>MR 已合入、main 可用、负责人知道如何继续维护，任务分支记录仍可查询。</p></div></div>
+            </div>
+            <div class="flow-visual merge-rules">
+              <article class="merge-rule"><span>01</span><h4>分支 → main</h4><p>合并请求的目标始终是 main，不把待确认内容直接写进正式版本。</p></article>
+              <article class="merge-rule"><span>02</span><h4>负责人维护</h4><p>业务负责人负责正式知识资产的正确性、完整性和持续更新。</p></article>
+              <article class="merge-rule"><span>03</span><h4>检查通过</h4><p>自动检查、页面预览和启动结果都留在合并请求记录里。</p></article>
+              <article class="merge-rule"><span>04</span><h4>合入后可追溯</h4><p>main 更新、Pages 发布和任务分支删除都能回到同一条记录。</p></article>
+            </div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section showcase" id="showcase">
+      <div class="shell">
+        <div class="showcase-heading">
+          <div class="kicker">Showcase</div>
+          <h2>SOP 是主链路，<br>案例展示最终会留下什么</h2>
+          <p>下面用真实的小布笔记 Storybook 和两个常见任务，展示业务负责人给出输入后，AI 如何执行，以及仓库最终沉淀哪些可继续维护的资产。</p>
+        </div>
+
+        <div class="showcase-grid">
+          <article class="case-card case-main">
+            <figure>
+              <img src="assets/xiaobubiji-storybook-overview.png" alt="小布笔记 Notes Design System 在 Storybook 中展示色彩、字体与组件资产的真实截图" data-zoom>
+              <figcaption class="case-caption">真实成果：小布笔记 / 03 Components / 00 Design System / 总览</figcaption>
+            </figure>
+            <div class="case-body">
+              <div class="case-kind">已落地案例</div>
+              <h3>从零建立小布笔记 Design System</h3>
+              <p>负责人只提供业务名称、负责人和 miniColorDesign 已沉淀目录。AI 完成建仓、上传、检查和启动，最后留下可运行、可审核、可继续更新的正式资产。</p>
+              <div class="case-path">
+                <div><b>业务提出什么</b><span>在固定 Group 建立小布笔记业务仓库，并上传完整沉淀项目。</span></div>
+                <div><b>AI 做了什么</b><span>确认 Group，创建仓库，保留 Git 历史，检查敏感信息，推送 main 并启动 Storybook。</span></div>
+                <div><b>最终留下什么</b><span>Shared + 业务目录、Design Knowledge、组件与页面 Story、README 和可追溯 main。</span></div>
+                <div><b>负责人验收什么</b><span>仓库归属正确，Storybook 可打开，main 检查通过，负责人和维护入口明确。</span></div>
+              </div>
+              <div class="case-prompt">
+                <div class="prompt-head"><span>案例输入 · 复制给 AI</span><button class="copy-button" type="button" data-copy="showcase-bootstrap-prompt">复制提示词</button></div>
+                <pre id="showcase-bootstrap-prompt">请在公司 GitLab 的 L3-AI-Native / Design System 下创建小布笔记业务仓库 xiaobubiji-design-system，并把 miniColorDesign 已沉淀的完整项目上传到 main。
+
+已沉淀项目目录：&lt;本地目录&gt;
+业务负责人：&lt;姓名或 GitLab 用户名&gt;
+
+请先确认目标 Group，不要创建到个人空间。上传前检查 README、AGENTS.md、design-system.manifest.json、Shared、业务 stories、knowledge、assets 和启动脚本，并排除令牌、密码、构建产物与未授权资料。完成后运行仓库要求的检查，启动 Storybook，返回仓库地址、commit ID、检查结果、启动命令和预览地址。</pre>
+              </div>
+            </div>
+          </article>
+
+          <article class="case-card case-compact">
+            <figure>
+              <img src="assets/xiaobubiji-storybook-page-template.png" alt="小布笔记 Storybook 页面模板的真实运行截图" data-zoom>
+              <figcaption class="case-caption">真实基线：开始任务前先确认当前 main 的页面与 Story</figcaption>
+            </figure>
+            <div class="case-body">
+              <div class="case-kind">任务案例</div>
+              <h3>新增会议笔记分享面板</h3>
+              <p>从当前 main 建立独立分支，补齐组件、默认态与已选择态 Story、使用说明和验证结果，再通过 MR 合入。</p>
+              <div class="case-prompt">
+                <div class="prompt-head"><span>案例提示词</span><button class="copy-button" type="button" data-copy="showcase-feature-prompt">复制</button></div>
+                <pre id="showcase-feature-prompt">请在小布笔记仓库同步最新 main，并创建 feat/meeting-note-share-panel 分支。
+
+完成“会议笔记分享面板”的组件、默认态与已选择态 Story、使用说明和必要检查。完成后先向我展示变化与检查结果；我确认后，再提交并推送任务分支，创建合并请求到 main。不要直接修改或推送 main。</pre>
+              </div>
+            </div>
+          </article>
+
+          <article class="case-card case-compact case-handover">
+            <div class="case-body">
+              <div class="case-kind">接手案例</div>
+              <h3>新负责人接手已有业务</h3>
+              <p>不需要从头理解整个仓库。让 AI 读取正式资产、启动服务并生成一份可以直接行动的接手摘要。</p>
+              <ul class="handover-list">
+                <li><b>读取</b><span>最新 main、README、AGENTS.md、业务知识入口</span></li>
+                <li><b>启动</b><span>Shared 与业务服务，返回本地预览地址</span></li>
+                <li><b>汇报</b><span>现有资产、待处理事项、检查命令和维护方式</span></li>
+              </ul>
+              <div class="case-prompt">
+                <div class="prompt-head"><span>接手提示词</span><button class="copy-button" type="button" data-copy="showcase-handover-prompt">复制</button></div>
+                <pre id="showcase-handover-prompt">请帮我接手这个业务 Design System。
+
+Shared 仓库：&lt;HTTPS 地址&gt;
+业务仓库：&lt;HTTPS 地址&gt;
+
+请拉取两个仓库的最新 main，读取 README、AGENTS.md、design-system.manifest.json 和业务知识入口，按仓库已有脚本启动服务。最后用非技术语言告诉我：当前正式资产有哪些、预览地址在哪里、有哪些待处理事项、以后修改后如何提交、推送并通过 MR 合入 main。现在不要修改或提交内容。</pre>
+              </div>
+            </div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="completion" id="complete">
+      <div class="shell completion-grid">
+        <div><div class="kicker">Completion</div><h2>做到这 6 点，<br>就算真正上手。</h2></div>
+        <div class="completion-list"><div><b>归属正确</b><span>业务项目位于 L3-AI-Native / Design System，负责人、用途和可见范围明确。</span></div><div><b>连接成功</b><span>AI 能够通过 HTTPS 地址 clone 目标项目。</span></div><div><b>规则已读</b><span>AI 已读取项目说明和 AGENTS.md，不会跳过仓库规则。</span></div><div><b>分支隔离</b><span>每个任务都有独立分支，不直接修改 main。</span></div><div><b>审核合入</b><span>变化、检查结果和风险已在合并请求中确认。</span></div><div><b>信息安全</b><span>令牌、密码、个人信息和未授权内部资料没有进入仓库。</span></div></div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="shell">更完整的 Git / SSH 命令说明可查看 <a href="https://o-gitlab.myoas.com/corp/dfx/dfx-seg/doc" target="_blank" rel="noreferrer">GitLab 专业文档 ↗</a></footer>
+  <div class="lightbox" role="dialog" aria-modal="true" aria-label="查看原始截图"><button type="button" aria-label="关闭">×</button><img alt="放大的 GitLab 操作截图"></div>
+
+  <script>
+    document.querySelectorAll("[data-copy]").forEach((button) => {
+      button.addEventListener("click", async () => {
+        const target = document.getElementById(button.dataset.copy);
+        const original = button.textContent;
+        try {
+          await navigator.clipboard.writeText(target.textContent);
+          button.textContent = "已复制";
+        } catch (error) {
+          const range = document.createRange();
+          range.selectNodeContents(target);
+          const selection = window.getSelection();
+          selection.removeAllRanges();
+          selection.addRange(range);
+          button.textContent = "已选中，请复制";
+        }
+        window.setTimeout(() => { button.textContent = original; }, 1800);
+      });
+    });
+
+    document.querySelectorAll("[data-gallery]").forEach((gallery) => {
+      const tabs = [...gallery.querySelectorAll(".gallery-tab")];
+      const shots = [...gallery.querySelectorAll(".gallery-shot")];
+      tabs.forEach((tab, index) => {
+        tab.addEventListener("click", () => {
+          tabs.forEach((item) => item.classList.remove("is-active"));
+          shots.forEach((item) => item.classList.remove("is-active"));
+          tab.classList.add("is-active");
+          shots[index].classList.add("is-active");
+        });
+      });
+    });
+
+    const lightbox = document.querySelector(".lightbox");
+    const lightboxImage = lightbox.querySelector("img");
+    const closeLightbox = () => lightbox.classList.remove("is-open");
+    document.querySelectorAll("[data-zoom]").forEach((image) => {
+      image.addEventListener("click", () => {
+        lightboxImage.src = image.src;
+        lightboxImage.alt = image.alt;
+        lightbox.classList.add("is-open");
+      });
+    });
+    lightbox.querySelector("button").addEventListener("click", closeLightbox);
+    lightbox.addEventListener("click", (event) => { if (event.target === lightbox) closeLightbox(); });
+    document.addEventListener("keydown", (event) => { if (event.key === "Escape") closeLightbox(); });
+  </script>
+</body>
+</html>
